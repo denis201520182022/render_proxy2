@@ -1,14 +1,15 @@
-# main.py
+# main.py (исправленная версия)
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
 import os
 import logging
+import json # <-- Добавим импорт json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="OpenAI Proxy Service", version="1.0.1")
+app = FastAPI(title="OpenAI Proxy Service", version="1.0.2") # Обновим версию для наглядности
 
 OPENAI_API_URL = "https://api.openai.com/v1"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -40,14 +41,24 @@ async def proxy_openai(request: Request, path: str):
                 content=body,
                 params=request.query_params
             )
-            response.raise_for_status() # Вызовет исключение для статусов 4xx/5xx
+            response.raise_for_status()
             
             logger.info(f"Ответ от OpenAI: {response.status_code}")
             return JSONResponse(content=response.json(), status_code=response.status_code)
 
         except httpx.HTTPStatusError as e:
+            # --- ИСПРАВЛЕННЫЙ БЛОК ОБРАБОТКИ ОШИБОК ---
             logger.error(f"Ошибка от OpenAI: {e.response.status_code} - {e.response.text[:500]}")
-            return JSONResponse(content={"error": e.response.json()}, status_code=e.response.status_code)
+            
+            # Пытаемся распарсить ошибку как JSON. Если не получается, возвращаем как текст.
+            try:
+                error_content = e.response.json()
+            except json.JSONDecodeError:
+                error_content = {"error": {"message": e.response.text, "type": "text_response"}}
+
+            return JSONResponse(content=error_content, status_code=e.response.status_code)
+            # --- КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ---
+
         except httpx.RequestError as e:
             logger.error(f"Ошибка запроса к OpenAI: {e}")
             raise HTTPException(status_code=502, detail="Bad Gateway: не удалось связаться с OpenAI")
