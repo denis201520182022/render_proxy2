@@ -1,4 +1,4 @@
-# main.py (финальная, самая надежная версия)
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
@@ -9,7 +9,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="OpenAI Proxy Service", version="1.0.3") # Снова обновим версию
+app = FastAPI(title="OpenAI Proxy Service", version="1.0.3")
 
 OPENAI_API_URL = "https://api.openai.com/v1"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -59,7 +59,7 @@ async def proxy_openai(request: Request, path: str):
             logger.error(f"Неожиданная ошибка: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
-# --- ИСПРАВЛЕННЫЙ ЭНДПОИНТ ---
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check(request: Request):
     return {"status": "ok", "service": "OpenAI Proxy"}
